@@ -1,8 +1,14 @@
-<ul *ngIf="productList$ | async as productList">
+<!-- <ul *ngIf="productList$ | async as productList">
     <li *ngFor="let productListItem of productList.items"
         (click)="onItemClicked(productListItem.id)">
         {{productListItem.text}}
         <button [libRemoveProduct]="productListItem.id">X</button>
         <button [libShowModal]="productListItem.id">Edit Price</button>
     </li>
+</ul> -->
+
+<ul *ngIf="productList$ | async as productList">
+  <li *ngFor="let productListItem; as: productList.item">
+    {{ productListItem }}
+  </li>
 </ul>
