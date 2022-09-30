@@ -8,7 +8,7 @@
 </ul> -->
 
 <ul *ngIf="productList$ | async as productList">
-  <li *ngFor="let productListItem; as: productList.item">
+  <li *ngFor="let productListItem of productList.items">
     {{ productListItem }}
   </li>
 </ul>
