@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { map, switchMap, take } from 'rxjs/operators';
 import { GetsCurrentProductListQueryPort } from '../ports/primary/query/gets-current-product-list.query-port';
+import { RemoveProductCommandPort } from '../ports/primary/command/remove-product.command-port';
 import {
   GETS_ALL_PRODUCT_DTO,
   GetsAllProductDtoPort,
@@ -14,23 +15,32 @@ import {
   SELECTS_PRODUCT_CONTEXT,
   SelectsProductContextPort,
 } from '../ports/secondary/context/selects-product.context-port';
-import { ProductListQuery } from '../ports/primary/query/product-list.query';
+import {
+  REMOVES_PRODUCT_DTO,
+  RemovesProductDtoPort,
+} from '../ports/secondary/dto/removes-product.dto-port';
 import { LoadProductsCommand } from '../ports/primary/command/load-products.command';
-import { ProductDTO } from '../ports/secondary/dto/product.dto';
+import { ProductListQuery } from '../ports/primary/query/product-list.query';
+import { RemoveProductCommand } from '../ports/primary/command/remove-product.command';
 import { mapFromProductContext } from './product-list-query.mapper';
+import { ProductContext } from '../ports/secondary/context/product.context';
 
 const makeRandomId = (): number =>
   parseInt(`${new Date().getTime()}${Math.ceil(Math.random() * 1000)}`);
 
 @Injectable()
-export class ProductsState implements GetsCurrentProductListQueryPort {
+export class ProductsState
+  implements GetsCurrentProductListQueryPort, RemoveProductCommandPort
+{
   constructor(
     @Inject(GETS_ALL_PRODUCT_DTO)
     private _getsAllProductDto: GetsAllProductDtoPort,
     @Inject(SETS_STATE_PRODUCT_CONTEXT)
     private _setsStateProductContext: SetsStateProductContextPort,
     @Inject(SELECTS_PRODUCT_CONTEXT)
-    private _selectsProductContext: SelectsProductContextPort
+    private _selectsProductContext: SelectsProductContextPort,
+    @Inject(REMOVES_PRODUCT_DTO)
+    private _removesProductDto: RemovesProductDtoPort
   ) {}
 
   loadProducts(command: LoadProductsCommand): Observable<void> {
@@ -47,5 +57,20 @@ export class ProductsState implements GetsCurrentProductListQueryPort {
     return this._selectsProductContext
       .select()
       .pipe(map((ctx) => mapFromProductContext(ctx)));
+  }
+
+  removeProduct(command: RemoveProductCommand): Observable<void> {
+    return this._removesProductDto.remove(command.productId).pipe(
+      switchMap(() => this._selectsProductContext.select().pipe(take(1))),
+      map((productContext: ProductContext) => {
+        return {
+          ...productContext,
+          all: productContext.all.filter((p) => p.id !== command.productId),
+        };
+      }),
+      switchMap((productContext) =>
+        this._setsStateProductContext.setState(productContext)
+      )
+    );
   }
 }

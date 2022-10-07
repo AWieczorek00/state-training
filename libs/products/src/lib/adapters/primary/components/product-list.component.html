@@ -9,6 +9,7 @@
 
 <ul *ngIf="productList$ | async as productList">
   <li *ngFor="let productListItem of productList.items">
-    {{ productListItem }}
+    {{ productListItem.text }}
+    <button [libRemoveProduct]="productListItem.id">X</button>
   </li>
 </ul>
